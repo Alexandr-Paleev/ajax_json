@@ -1,100 +1,94 @@
+(function() {
 
-
-xhrButton.addEventListener('click', () => {
-	let xhr = new XMLHttpRequest();
-
-	xhr.addEventListener('readystatechange', () => {
-		if(xhr.readyState === 4 && xhr.status === 200) {
-			let res = JSON.parse(xhr.responseText);
-			showNames(res);
-			createTable(res);
-			addRowHandler(res);
-		}
-	});
-
-	xhr.open("GET", "https://jsonplaceholder.typicode.com/users");
-	xhr.send(null);
-
-});
-
-function showNames(res) {
-	let list = document.createElement('ul');
-
-    res.forEach(item => {
-        let listItem = document.createElement('li');
-        listItem.innerText = item.name + '*' + item.username + '*' + item.email + '*' + item.website;
-        list.appendChild(listItem);
-    });
-
-    document.getElementById('result').insertAdjacentElement('afterbegin', list);
-
-}
-
-let table = {};
-
-function createTable(res){
-table = document.createElement("table");
-const header = document.createElement("tr");
-const keys = Object.keys(res[0])
-for(var key of keys){
-    if(key === 'name' || key === 'username' || key === 'email' || key === 'website') {
-        const th = document.createElement("th");
-        th.appendChild(document.createTextNode(key));
-        header.appendChild(th);
-    }
-    
-}
-table.appendChild(header);
-for(const row of res) {	
-    const tr = document.createElement("tr");
-    for(const key of keys){
-        if(key === 'name' || key === 'username' || key === 'email' || key === 'website') {
-            const td = document.createElement("td");
-            const content = row[key] || '';
-            td.appendChild(document.createTextNode(content));
-            tr.appendChild(td);
-            delete row[key]
-        }
-        
-    }
-    table.appendChild(tr);
-}
-document.body.appendChild(table);
-}
-
-function addRowHandler(res) {
-
-	let address = '';
-	for(const row of res) {
-		adds = row.address;
-		const keys = Object.keys(adds);
-		for(const key of keys) {
-			
-			switch(key) {
-				case 'street': address += ' STREET: ' + adds[key];
-				break;
-
-				case 'city': address += ' CITY: ' + adds[key];
-				break;
-
-				case 'zipcode': address += ' ZIPCODE: ' + adds[key] + '\n';
-				break;
-
-				default: 
-				break;
-
+	fetchButton.addEventListener('click', () => {
+		fetch("https://jsonplaceholder.typicode.com/users")
+		.then(response => {
+			if (response.ok ? response : Promise.reject()) {
+				return response.json();
+			}else{
+				return reject();
 			}
-			
-		}
-	}
-	
-	const rows = table.getElementsByTagName('tr');
-	for(let i = 1; i <= rows.length; i++) {
-		let currentRow = table.rows[i];
-		let createClickHandler = function() {
-			alert(address);
-		}
-		currentRow.addEventListener('click', createClickHandler);
-	}
-}
+		}).then(data => {
+			return createTable(data);		
+		}).then(data => {
+			return addRowHandler(data);
+		}).then(result => {
+			return collumnSort(result);
+		}).catch(() => {
+			alert('Error: Not-found');
+		});
+	}, {once : true});
 
+
+	function createTable(data){
+		const table = document.createElement("table");
+		const header = document.createElement("tr");
+		const keys = Object.keys(data[0])
+		for(var key of keys){
+		    if(key === 'name' || key === 'username' || key === 'email' || key === 'website') {
+		        const th = document.createElement("th");
+		        th.appendChild(document.createTextNode(key));
+		        header.appendChild(th);
+		    }
+		    
+		}
+		table.appendChild(header);
+
+		for(const row of data) {	
+		    const tr = document.createElement("tr");
+		    tr.id = row.id;
+		    for(const key of keys){
+		        if(key === 'name' || key === 'username' || key === 'email' || key === 'website') {
+		            const td = document.createElement("td");
+		            const content = row[key] || '';
+		            td.appendChild(document.createTextNode(content));
+		            tr.appendChild(td);
+		            delete row[key]
+		        }
+		        
+		    }
+		    table.appendChild(tr);
+		}
+		result.appendChild(table);
+	}
+
+	function addRowHandler(data) {
+		const currentRow = [...(document.getElementsByTagName('tr'))];
+
+		for(let i = 1; i < currentRow.length; i++) {
+
+			currentRow[i].addEventListener('click', (e) => {
+				fetch("https://jsonplaceholder.typicode.com/users")
+				.then(response => {
+					if (response.ok) {
+						return response.json();
+					}
+				}).then(data => {
+					for(let obj of data) {
+						if (obj.id === i) {
+							alert(`street : ${obj.address.street}\ncity : ${obj.address.city}\nzipcode : ${obj.address.zipcode}`);
+						}
+					}
+				});
+			});
+		}
+
+	}
+
+	function collumnSort(result) {
+
+		const getCellValue = (tr, idx) => tr.children[idx].innerText || tr.children[idx].textContent;
+
+		const compare = (idx, abc) => (a, b) => ((v1, v2) => 
+		    v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2)
+		    )(getCellValue(abc ? a : b, idx), getCellValue(abc ? b : a, idx));
+
+		document.querySelectorAll('th').forEach(th => th.addEventListener('click', (() => {
+		    result = th.closest('table');
+		    Array.from(result.querySelectorAll('tr:nth-child(n+2)'))
+		        .sort(compare(Array.from(th.parentNode.children).indexOf(th), this.abc = !this.abc))
+		        .forEach(tr => result.appendChild(tr) );
+		})));
+	}
+
+})();
